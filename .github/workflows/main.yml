@@ -69,10 +69,10 @@ jobs:
           echo "3. Нормалізуємо версію для Feature..."
           if [ -d "com.archimatetool.script.feature" ]; then
             
-            # ВИПРАВЛЕННЯ: Видаляємо посилання на Premium та відсутній Nashorn-плагін
+            # ВИПРАВЛЕННЯ: Безпечно вирізаємо багаторядкові XML-теги <plugin ... /> цілком
             echo "Очищуємо feature.xml від відсутніх модулів (premium, nashorn)..."
-            sed -i '/com.archimatetool.script.premium/d' com.archimatetool.script.feature/feature.xml
-            sed -i '/com.archimatetool.script.nashorn/d' com.archimatetool.script.feature/feature.xml
+            perl -0777 -pi -e 's/<plugin[^>]*?id="com\.archimatetool\.script\.premium"[^>]*?\/>//gs' com.archimatetool.script.feature/feature.xml
+            perl -0777 -pi -e 's/<plugin[^>]*?id="com\.archimatetool\.script\.nashorn"[^>]*?\/>//gs' com.archimatetool.script.feature/feature.xml
 
             # Безпечно витягуємо версію з feature.xml, ігноруючи заголовок XML декларації
             BASE_VERSION_FEATURE=$(grep '<feature' -A 5 com.archimatetool.script.feature/feature.xml | grep -m1 -oP 'version="\K[0-9\.]+(?=[^"]*")' || true)
