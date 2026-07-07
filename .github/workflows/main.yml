@@ -40,14 +40,14 @@ jobs:
         working-directory: ./archi
         run: |
           echo "1. Копіюємо папки плагіну в корінь Archi..."
-          cp -r ../jArchi/com.archimatetool.modelrepository* .
+          cp -r ../jArchi/com.archimatetool.script* .
           
           # Визначаємо поточну ревізію Archi з батьківського файлу конфігурації
           PARENT_VERSION=$(grep -m1 '<version>' pom.xml | sed 's/.*<version>\(.*\)<\/version>.*/\1/' || true)
           echo "Archi Parent Version: ${PARENT_VERSION}"
           
           echo "2. Нормалізуємо версії для Плагінів..."
-          for module in com.archimatetool.modelrepository com.archimatetool.modelrepository.commandline; do
+          for module in com.archimatetool.script com.archimatetool.script.commandline; do
             if [ -d "$module" ]; then
               # Витягуємо поточну версію з OSGi маніфесту
               RAW_VERSION=$(grep 'Bundle-Version:' $module/META-INF/MANIFEST.MF | awk '{print $2}' | tr -d '\r' || true)
@@ -67,9 +67,9 @@ jobs:
           done
           
           echo "3. Нормалізуємо версію для Feature..."
-          if [ -d "com.archimatetool.modelrepository.feature" ]; then
+          if [ -d "com.archimatetool.script.feature" ]; then
             # Безпечно витягуємо версію з feature.xml, ігноруючи заголовок XML декларації
-            BASE_VERSION_FEATURE=$(grep '<feature' -A 5 com.archimatetool.modelrepository.feature/feature.xml | grep -m1 -oP 'version="\K[0-9\.]+(?=[^"]*")' || true)
+            BASE_VERSION_FEATURE=$(grep '<feature' -A 5 com.archimatetool.script.feature/feature.xml | grep -m1 -oP 'version="\K[0-9\.]+(?=[^"]*")' || true)
             
             if [ -z "$BASE_VERSION_FEATURE" ]; then
               BASE_VERSION_FEATURE="1.0.0"
@@ -79,18 +79,18 @@ jobs:
             
             # Використовуємо Perl через змінні оточення (ENV) для безпечної багаторядкової заміни версії в тегу feature
             export B_FEAT="${BASE_VERSION_FEATURE}"
-            perl -0777 -pi -e 's/(<feature[^>]+?version=")[^"]*(")/$1$ENV{B_FEAT}.qualifier$2/s' com.archimatetool.modelrepository.feature/feature.xml
+            perl -0777 -pi -e 's/(<feature[^>]+?version=")[^"]*(")/$1$ENV{B_FEAT}.qualifier$2/s' com.archimatetool.script.feature/feature.xml
             
             echo "[Feature] OSGi: ${BASE_VERSION_FEATURE}.qualifier | Maven: ${MVN_VERSION_FEATURE}"
             
             # Генеруємо pom.xml для feature модуля
-            cat <<EOF > com.archimatetool.modelrepository.feature/pom.xml
-          <project><modelVersion>4.0.0</modelVersion><parent><groupId>com.archimatetool</groupId><artifactId>archi</artifactId><version>${PARENT_VERSION}</version></parent><artifactId>com.archimatetool.modelrepository.feature</artifactId><version>${MVN_VERSION_FEATURE}</version><packaging>eclipse-feature</packaging></project>
+            cat <<EOF > com.archimatetool.script.feature/pom.xml
+          <project><modelVersion>4.0.0</modelVersion><parent><groupId>com.archimatetool</groupId><artifactId>archi</artifactId><version>${PARENT_VERSION}</version></parent><artifactId>com.archimatetool.script.feature</artifactId><version>${MVN_VERSION_FEATURE}</version><packaging>eclipse-feature</packaging></project>
           EOF
           fi
           
           echo "4. Вбудовуємо модулі в головний збиральний конвеєр Archi..."
-          sed -i 's|<\/modules>|\t<module>com.archimatetool.modelrepository<\/module>\n\t<module>com.archimatetool.modelrepository.commandline<\/module>\n\t<module>com.archimatetool.modelrepository.feature<\/module>\n<\/modules>|g' pom.xml
+          sed -i 's|<\/modules>|\t<module>com.archimatetool.script<\/module>\n\t<module>com.archimatetool.script.commandline<\/module>\n\t<module>com.archimatetool.script.feature<\/module>\n<\/modules>|g' pom.xml
 
       # Крок 5: Запускаємо компіляцію всього проекту через Maven у пакетному автоматичному режимі (-B)
       - name: Build with Maven
@@ -105,7 +105,7 @@ jobs:
           mkdir -p output
           
           # Копіюємо всі скомпільовані JAR-плагіни в єдину плоску структуру (без вкладених папок plugins/ чи features/)
-          find com.archimatetool.modelrepository*/target/ -name "*.jar" ! -name "*-sources.jar" -type f -exec cp {} output/ \;
+          find com.archimatetool.script*/target/ -name "*.jar" ! -name "*-sources.jar" -type f -exec cp {} output/ \;
           
           # Створюємо магічний маркерний файл 'archi-plugin', щоб задовольнити перевірку DropinsPluginHandler в Archi
           echo "Magic file to signify this is an Archi plug-in bundle." > output/archi-plugin
